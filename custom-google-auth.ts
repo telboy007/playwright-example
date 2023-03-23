@@ -40,8 +40,27 @@ static async getUserCookie(): Promise<{
   const sidValue = decodeURIComponent(sid.split('=')[1]);
   const expireValue = Math.round(new Date(expires.split('=')[1]).getTime() / 1000);
 
-  // DOMAIN_NAME 
+  // DOMAIN_NAME based on ENV
   return {
     name: 'connect.sid', value: sidValue, domain: process.env.DOMAIN_NAME, path: '/', expires: expireValue, httpOnly: true, secure: false, sameSite: 'Lax',
   };
 }
+
+// AXIOS UTILITY
+
+import axios from 'axios';
+
+export const AXIOS_INSTANCE = axios.create({ baseURL: process.env.BASE_URL, headers: { Authorization: `Basic ${process.env.LOGIN_API_TOKEN}`, 'Content-Type': 'application/json' } });
+export const createSession = async () => {
+  delete AXIOS_INSTANCE.defaults.headers.common.Cookie;
+
+  const response = await AXIOS_INSTANCE.post('api/auth/auth_endpoint');
+  if (response.status !== 200) {
+    throw new Error(response.statusText);
+  }
+
+  const [cookie] = response.headers['set-cookie'] ?? [];
+  AXIOS_INSTANCE.defaults.headers.common.Cookie = cookie;
+
+  return cookie;
+};
